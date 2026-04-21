@@ -8,6 +8,9 @@ import type { Session, Question } from '../types';
 interface LocationState {
   sessionId: string;
   respondentId: string;
+  solo: boolean;
+  camperAName?: string;
+  camperBName?: string;
 }
 
 export default function Interview() {
@@ -18,11 +21,15 @@ export default function Interview() {
   const [session, setSession] = useState<Session | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [currentSpeaker, setCurrentSpeaker] = useState<'A' | 'B'>('A');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const sessionId = state?.sessionId ?? '';
   const respondentId = state?.respondentId ?? '';
+  const solo = state?.solo ?? true;
+  const camperAName = state?.camperAName ?? 'You';
+  const camperBName = state?.camperBName ?? 'Partner';
 
   useEffect(() => {
     if (!sessionId || !respondentId) {
@@ -43,6 +50,9 @@ export default function Interview() {
       if (idbState) {
         setCurrentIndex(idbState.currentQuestionIndex);
         setCompletedIds(idbState.completedQuestionIds);
+        setCurrentSpeaker(idbState.currentSpeaker ?? (solo ? 'A' : 'B'));
+      } else {
+        setCurrentSpeaker(solo ? 'A' : 'B');
       }
     } catch {
       setError('Could not load interview questions. Please check your connection and try again.');
@@ -55,17 +65,42 @@ export default function Interview() {
     if (!session) return;
 
     const question = session.questions[currentIndex];
+    const isInfo = question.type === 'info';
+
+    // Partner mode, regular question, B just answered → switch to A (same question)
+    if (!solo && !isInfo && currentSpeaker === 'B') {
+      const newSpeaker: 'A' | 'B' = 'A';
+      setCurrentSpeaker(newSpeaker);
+      await saveSessionState({
+        sessionId,
+        respondentId,
+        camperName: camperAName,
+        partnerName: solo ? undefined : camperBName,
+        solo,
+        currentQuestionIndex: currentIndex,
+        currentSpeaker: newSpeaker,
+        completedQuestionIds: completedIds,
+      });
+      return;
+    }
+
+    // Advance to next question
     const newCompleted = [...completedIds, question.id];
     const newIndex = currentIndex + 1;
+    const newSpeaker: 'A' | 'B' = solo ? 'A' : 'B';
 
     setCompletedIds(newCompleted);
     setCurrentIndex(newIndex);
+    setCurrentSpeaker(newSpeaker);
 
     await saveSessionState({
       sessionId,
       respondentId,
-      camperName: '',
+      camperName: camperAName,
+      partnerName: solo ? undefined : camperBName,
+      solo,
       currentQuestionIndex: newIndex,
+      currentSpeaker: newSpeaker,
       completedQuestionIds: newCompleted,
     });
 
@@ -82,7 +117,7 @@ export default function Interview() {
         completedAt: new Date().toISOString(),
       });
     } catch {
-      // Non-fatal: the recordings are already uploaded
+      // Non-fatal: recordings are already uploaded
     }
     await clearSessionState(sessionId, respondentId);
     localStorage.removeItem(`session-context-${sessionId}`);
@@ -124,6 +159,8 @@ export default function Interview() {
   const progress = (currentIndex / total) * 100;
   const stepLabel = isInfo ? 'Note' : 'Question';
 
+  const speakerName = currentSpeaker === 'B' ? camperBName : camperAName;
+
   return (
     <div className="page-container">
       {/* Top bar */}
@@ -143,7 +180,7 @@ export default function Interview() {
 
       <div className="page-content">
         {isInfo ? (
-          // ── Info / text-only step ───────────────────────────────────────────
+          // ── Info / text-only step ──────────────────────────────────────────
           <>
             <div className="card">
               <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-2">
@@ -159,8 +196,17 @@ export default function Interview() {
             </button>
           </>
         ) : (
-          // ── Regular question with recorder ──────────────────────────────────
+          // ── Regular question with recorder ─────────────────────────────────
           <>
+            {/* Speaker banner (partner mode only) */}
+            {!solo && (
+              <div className="rounded-xl bg-brand-50 border border-brand-100 px-4 py-3 text-center">
+                <p className="text-sm font-semibold text-brand-700">
+                  {speakerName}'s turn
+                </p>
+              </div>
+            )}
+
             <div className="card">
               <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-2">
                 Question {currentIndex + 1}
@@ -177,19 +223,21 @@ export default function Interview() {
             </div>
 
             <div className="text-center text-sm text-gray-500">
-              Tap the microphone to start recording your answer.
+              {solo
+                ? 'Tap the microphone to start recording your answer.'
+                : `${speakerName}, tap the microphone to record your answer.`}
               <br />
               You have up to 3 minutes.
             </div>
 
             <Recorder
-              key={question.id}
+              key={`${question.id}-${currentSpeaker}`}
               respondentId={respondentId}
               sessionId={sessionId}
               questionId={question.id}
-              speakerRole="A"
+              speakerRole={currentSpeaker}
               isFollowup={false}
-              solo={true}
+              solo={solo}
               onConfirmed={advance}
             />
 

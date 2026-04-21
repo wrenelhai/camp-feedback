@@ -30,7 +30,7 @@ export const api = {
 
   getSession: (id: string) => json<Session>(`/sessions/${id}`),
 
-  createRespondent: (data: { sessionId: string; camperAName: string; solo: boolean }) =>
+  createRespondent: (data: { sessionId: string; camperAName: string; camperBName?: string; solo: boolean }) =>
     json<Respondent>('/respondents', { method: 'POST', body: JSON.stringify(data) }),
 
   updateRespondent: (id: string, data: Partial<Pick<Respondent, 'status' | 'completedAt'>>) =>

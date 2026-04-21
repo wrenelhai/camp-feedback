@@ -66,6 +66,9 @@ export interface SessionState {
   sessionId: string;
   respondentId: string;
   camperName: string;
+  partnerName?: string;   // set in partner mode
+  solo: boolean;
   currentQuestionIndex: number;
+  currentSpeaker: 'A' | 'B'; // partner mode: B answers first per question, then A
   completedQuestionIds: string[];
 }

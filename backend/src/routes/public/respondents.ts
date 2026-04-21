@@ -5,6 +5,7 @@ import { db } from '../../db';
 const createSchema = z.object({
   sessionId: z.string().min(1),
   camperAName: z.string().min(1).max(80),
+  camperBName: z.string().min(1).max(80).optional(),
   solo: z.boolean().default(true),
 });
 
@@ -21,7 +22,7 @@ export const publicRespondentsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: result.error.flatten().fieldErrors });
     }
 
-    const { sessionId, camperAName, solo } = result.data;
+    const { sessionId, camperAName, camperBName, solo } = result.data;
 
     // Verify session exists and is active
     const session = await db.session.findUnique({ where: { id: sessionId } });
@@ -30,7 +31,7 @@ export const publicRespondentsRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const respondent = await db.respondent.create({
-      data: { sessionId, camperAName, solo },
+      data: { sessionId, camperAName, camperBName, solo },
     });
 
     return reply.code(201).send(respondent);
