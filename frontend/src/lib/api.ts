@@ -130,7 +130,7 @@ export const api = {
   synthesize: (sessionId: string, force = false) =>
     json<SynthesisRecord[] | { confirmRequired: true; existingAt: string }>(
       `/admin/sessions/${sessionId}/synthesize?force=${force}`,
-      { method: 'POST' },
+      { method: 'POST', body: '{}' },
     ),
 
   exportSession: async (sessionId: string): Promise<void> => {
