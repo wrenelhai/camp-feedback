@@ -35,11 +35,7 @@ export default function Done() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">You're all done!</h1>
           <p className="text-gray-600 leading-relaxed max-w-sm">
-            Thanks for sharing your feedback from {sessionName}.
-            {count > 0 && (
-              <> You answered {count} question{count !== 1 ? 's' : ''}.</>
-            )}{' '}
-            {customText?.completionMessage ?? 'Your responses will help shape future camps.'}
+            {customText?.completionMessage ?? 'Thanks for sharing your feedback. Your responses will help shape future camps.'}
           </p>
         </div>
 
