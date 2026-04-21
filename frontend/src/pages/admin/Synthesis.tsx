@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
 import { api } from '../../lib/api';
 import type {
   Session,
@@ -57,35 +58,140 @@ export default function AdminSynthesis() {
     }
   }
 
-  async function handleExport() {
-    if (!id) return;
+  function handleExportPDF() {
+    if (!session) return;
     setExporting(true);
     try {
-      await api.exportSession(id);
-    } catch {
-      setError('Export failed. Please try again.');
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      function checkPageBreak(needed = 15) {
+        if (y + needed > pageH - margin) { doc.addPage(); y = margin; }
+      }
+
+      function addText(text: string, size: number, bold = false, indent = 0) {
+        doc.setFontSize(size);
+        doc.setFont('helvetica', bold ? 'bold' : 'normal');
+        const lines = doc.splitTextToSize(text, contentW - indent) as string[];
+        const lineH = size * 0.45;
+        checkPageBreak(lines.length * lineH + 2);
+        doc.text(lines, margin + indent, y);
+        y += lines.length * lineH + 2;
+      }
+
+      // Title
+      addText(session.name, 18, true);
+      addText(`Synthesis Report  ·  ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`, 9);
+      y += 6;
+
+      // Per-question sections
+      for (const synth of sortedPerQuestion) {
+        const data = synth.themes as QuestionSynthesisData;
+        const qMeta = synth.questionId ? questionMap[synth.questionId] : null;
+        if (!qMeta) continue;
+
+        checkPageBreak(30);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageW - margin, y);
+        y += 5;
+
+        addText(`QUESTION ${qMeta.num}`, 7, true);
+        addText(qMeta.promptText, 13, true);
+        y += 3;
+
+        for (const theme of data.themes) {
+          checkPageBreak(22);
+          addText(`${theme.name}  (~${theme.estimatedCount} responses)`, 10, true);
+          addText(theme.description, 9);
+          for (const q of theme.quotes) {
+            checkPageBreak(10);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'italic');
+            const lines = doc.splitTextToSize(`"${q}"`, contentW - 8) as string[];
+            checkPageBreak(lines.length * 3.8 + 1);
+            doc.text(lines, margin + 4, y);
+            y += lines.length * 3.8 + 1;
+          }
+          y += 3;
+        }
+
+        if (data.outliers?.length) {
+          checkPageBreak(14);
+          addText('Outliers & minority perspectives', 8, true);
+          for (const o of data.outliers) addText(`• ${o}`, 8, false, 3);
+          y += 2;
+        }
+
+        if (data.distressFlags?.length) {
+          checkPageBreak(14);
+          addText('Flagged for follow-up', 8, true);
+          for (const f of data.distressFlags) addText(`• "${f.quote}" — ${f.concern}`, 8, false, 3);
+          y += 2;
+        }
+
+        y += 4;
+      }
+
+      // Cross-question section
+      if (crossQuestion) {
+        const data = crossQuestion.themes as CrossQuestionSynthesisData;
+        checkPageBreak(30);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageW - margin, y);
+        y += 5;
+        addText('PATTERNS ACROSS QUESTIONS', 7, true);
+        addText('Cross-question synthesis', 13, true);
+        y += 3;
+
+        for (const c of data.connections) {
+          checkPageBreak(20);
+          addText(c.title, 10, true);
+          addText(c.description, 9);
+          y += 3;
+        }
+
+        if (data.keyTakeaways?.length) {
+          checkPageBreak(14);
+          addText('Key takeaways', 10, true);
+          for (const t of data.keyTakeaways) addText(`• ${t}`, 9, false, 3);
+        }
+      }
+
+      const filename = `${session.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-synthesis.pdf`;
+      doc.save(filename);
     } finally {
       setExporting(false);
     }
   }
 
-  const perQuestion = syntheses.filter((s) => s.type === 'per_question');
+  const questionMap = session
+    ? Object.fromEntries(session.questions.filter((q) => q.type !== 'info').map((q, i) => [q.id, { ...q, num: i + 1 }]))
+    : {};
+
+  const sortedPerQuestion = syntheses
+    .filter((s) => s.type === 'per_question')
+    .sort((a, b) => {
+      const numA = a.questionId ? (questionMap[a.questionId]?.num ?? 999) : 999;
+      const numB = b.questionId ? (questionMap[b.questionId]?.num ?? 999) : 999;
+      return numA - numB;
+    });
+
   const crossQuestion = syntheses.find((s) => s.type === 'cross_question');
   const lastGeneratedAt = syntheses.length > 0
     ? new Date(syntheses[0].generatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
 
-  const allDistressFlags = perQuestion.flatMap((s) => {
+  const allDistressFlags = sortedPerQuestion.flatMap((s) => {
     const data = s.themes as QuestionSynthesisData;
     return (data.distressFlags ?? []).map((f) => ({
       ...f,
       questionId: s.questionId,
     }));
   });
-
-  const questionMap = session
-    ? Object.fromEntries(session.questions.filter((q) => q.type !== 'info').map((q, i) => [q.id, { ...q, num: i + 1 }]))
-    : {};
 
   if (loading) {
     return (
@@ -115,11 +221,11 @@ export default function AdminSynthesis() {
         <div className="ml-auto flex items-center gap-3">
           {syntheses.length > 0 && (
             <button
-              onClick={handleExport}
+              onClick={handleExportPDF}
               disabled={exporting}
               className="btn-secondary w-auto px-4 py-2 text-sm"
             >
-              {exporting ? 'Preparing…' : 'Export ZIP'}
+              {exporting ? 'Preparing…' : 'Export PDF'}
             </button>
           )}
         </div>
@@ -199,7 +305,7 @@ export default function AdminSynthesis() {
         </div>
 
         {/* Per-question synthesis */}
-        {perQuestion.map((synth) => {
+        {sortedPerQuestion.map((synth) => {
           const data = synth.themes as QuestionSynthesisData;
           const qMeta = synth.questionId ? questionMap[synth.questionId] : null;
           if (!qMeta) return null;
