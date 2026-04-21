@@ -28,11 +28,11 @@ async function buildApp() {
 
   await app.register(cors, {
     origin: (origin, cb) => {
-      // Allow requests from configured frontend and any localhost origin
       if (
         !origin ||
         origin === config.FRONTEND_URL ||
-        /^https?:\/\/localhost(:\d+)?$/.test(origin)
+        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^https:\/\/[^.]+\.vercel\.app$/.test(origin)
       ) {
         cb(null, true);
       } else {
