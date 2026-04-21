@@ -27,18 +27,7 @@ async function buildApp() {
   fs.mkdirSync(config.UPLOAD_DIR, { recursive: true });
 
   await app.register(cors, {
-    origin: (origin, cb) => {
-      if (
-        !origin ||
-        origin === config.FRONTEND_URL ||
-        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
-        /^https:\/\/[^.]+\.vercel\.app$/.test(origin)
-      ) {
-        cb(null, true);
-      } else {
-        cb(new Error('Not allowed by CORS'), false);
-      }
-    },
+    origin: true,
     credentials: true,
   });
 
