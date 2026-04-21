@@ -21,11 +21,12 @@ const createSessionSchema = z.object({
 });
 
 function parseQuestions(raw: string) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function parseCustomText(raw: string | null | undefined) {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
 export const adminSessionsRoutes: FastifyPluginAsync = async (fastify) => {
@@ -42,7 +43,7 @@ export const adminSessionsRoutes: FastifyPluginAsync = async (fastify) => {
     return sessions.map((s) => {
       const interviewCount = s.respondents.reduce((acc: number, r: { solo: boolean }) => acc + (r.solo ? 1 : 2), 0);
       const { respondents: _r, ...rest } = s;
-      return { ...rest, questions: parseQuestions(s.questions), interviewCount };
+      return { ...rest, questions: parseQuestions(s.questions), customText: parseCustomText(s.customText), interviewCount };
     });
   });
 
@@ -61,7 +62,7 @@ export const adminSessionsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    return reply.code(201).send({ ...session, questions: parseQuestions(session.questions) });
+    return reply.code(201).send({ ...session, questions: parseQuestions(session.questions), customText: null });
   });
 
   fastify.get('/sessions/:id', async (request, reply) => {
@@ -76,21 +77,22 @@ export const adminSessionsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
     if (!session) return reply.code(404).send({ error: 'Session not found' });
-    return { ...session, questions: parseQuestions(session.questions) };
+    return { ...session, questions: parseQuestions(session.questions), customText: parseCustomText(session.customText) };
   });
 
-  // Update session (status, name, or questions)
+  // Update session (status, name, questions, or customText)
   fastify.patch('/sessions/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { status?: string; name?: string; questions?: unknown[] };
+    const body = request.body as { status?: string; name?: string; questions?: unknown[]; customText?: unknown };
 
     const data: Record<string, unknown> = {};
     if (body.status !== undefined) data.status = body.status;
     if (body.name !== undefined) data.name = body.name;
     if (body.questions !== undefined) data.questions = JSON.stringify(body.questions);
+    if (body.customText !== undefined) data.customText = JSON.stringify(body.customText);
 
     const session = await db.session.update({ where: { id }, data });
-    return { ...session, questions: parseQuestions(session.questions) };
+    return { ...session, questions: parseQuestions(session.questions), customText: parseCustomText(session.customText) };
   });
 
   // ── QR Code ─────────────────────────────────────────────────────────────────

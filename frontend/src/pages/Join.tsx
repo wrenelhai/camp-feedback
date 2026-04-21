@@ -212,13 +212,13 @@ export default function Join() {
             <div className="card">
               <h2 className="font-semibold text-gray-800 mb-2">How it works</h2>
               <p className="text-gray-600 text-sm leading-relaxed">
-                You'll record short audio answers to a series of questions about your camp experience.
-                It takes about 10–15 minutes. You can do it alone or interview each other with a partner.
+                {session.customText?.introBody ??
+                  "You'll record short audio answers to a series of questions about your camp experience. It takes about 10–15 minutes. You can do it alone or interview each other with a partner."}
               </p>
               <p className="text-xs text-gray-400 mt-3 leading-relaxed">
-                <strong>Privacy notice:</strong> Your recordings will be transcribed and reviewed only
-                by Miles of Music organizers. Names are not required. Data is deleted 90 days after
-                camp closes.
+                <strong>Privacy notice:</strong>{' '}
+                {session.customText?.privacyNotice ??
+                  'Your recordings will be transcribed and reviewed only by Miles of Music organizers. Names are not required. Data is deleted 90 days after camp closes.'}
               </p>
             </div>
             <div className="text-center text-sm text-gray-500">

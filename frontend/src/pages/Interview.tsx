@@ -121,7 +121,7 @@ export default function Interview() {
     }
     await clearSessionState(sessionId, respondentId);
     localStorage.removeItem(`session-context-${sessionId}`);
-    navigate('/done', { state: { sessionName: session.name, count: finalCompleted.length } });
+    navigate('/done', { state: { sessionName: session.name, count: finalCompleted.length, customText: session.customText } });
   }
 
   if (loading) {

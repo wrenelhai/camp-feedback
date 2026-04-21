@@ -1,8 +1,10 @@
 import { useLocation } from 'react-router-dom';
+import type { SessionCustomText } from '../types';
 
 interface LocationState {
   sessionName?: string;
   count?: number;
+  customText?: SessionCustomText | null;
 }
 
 export default function Done() {
@@ -10,6 +12,7 @@ export default function Done() {
   const state = location.state as LocationState | null;
   const sessionName = state?.sessionName ?? 'Miles of Music Camp';
   const count = state?.count ?? 0;
+  const customText = state?.customText;
 
   return (
     <div className="page-container">
@@ -36,7 +39,7 @@ export default function Done() {
             {count > 0 && (
               <> You answered {count} question{count !== 1 ? 's' : ''}.</>
             )}{' '}
-            Your responses will help shape future camps.
+            {customText?.completionMessage ?? 'Your responses will help shape future camps.'}
           </p>
         </div>
 
@@ -47,7 +50,7 @@ export default function Done() {
         </div>
 
         <p className="text-xs text-gray-400 max-w-xs">
-          🎵 See you next year at Miles of Music Camp!
+          {customText?.closingTagline ?? '🎵 See you next year at Miles of Music Camp!'}
         </p>
       </div>
     </div>

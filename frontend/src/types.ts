@@ -7,10 +7,18 @@ export interface Question {
   type?: 'question' | 'info'; // 'question' is default; 'info' shows text only with no recording
 }
 
+export interface SessionCustomText {
+  introBody?: string;
+  privacyNotice?: string;
+  completionMessage?: string;
+  closingTagline?: string;
+}
+
 export interface Session {
   id: string;
   name: string;
   questions: Question[];
+  customText?: SessionCustomText | null;
   status: string;
   createdAt: string;
 }

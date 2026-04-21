@@ -14,13 +14,8 @@ export const publicSessionsRoutes: FastifyPluginAsync = async (fastify) => {
       id: session.id,
       name: session.name,
       status: session.status,
-      questions: (() => {
-        try {
-          return JSON.parse(session.questions);
-        } catch {
-          return [];
-        }
-      })(),
+      questions: (() => { try { return JSON.parse(session.questions); } catch { return []; } })(),
+      customText: (() => { try { return session.customText ? JSON.parse(session.customText) : null; } catch { return null; } })(),
     };
   });
 };

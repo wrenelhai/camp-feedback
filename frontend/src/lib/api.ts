@@ -1,4 +1,4 @@
-import type { Session, Respondent, Recording, Question } from '../types';
+import type { Session, Respondent, Recording, Question, SessionCustomText } from '../types';
 
 // In dev, Vite proxies /api → localhost:3001. In prod, set VITE_API_URL to the backend origin.
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
@@ -93,7 +93,7 @@ export const api = {
   createSession: (data: { name: string; questions: Question[] }) =>
     json<Session>('/admin/sessions', { method: 'POST', body: JSON.stringify(data) }),
 
-  patchSession: (id: string, data: { name?: string; status?: string; questions?: Question[] }) =>
+  patchSession: (id: string, data: { name?: string; status?: string; questions?: Question[]; customText?: SessionCustomText }) =>
     json<Session>(`/admin/sessions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   getSessionDetail: (id: string) =>

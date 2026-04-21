@@ -21,6 +21,7 @@ model Session {
   createdAt   DateTime     @default(now())
   createdById String
   questions   String       // JSON: Question[]
+  customText  String?      // JSON: SessionCustomText (optional overrides for camper-facing copy)
   status      String       @default("active") // draft | active | closed
   createdBy   AdminUser    @relation(fields: [createdById], references: [id])
   respondents Respondent[]

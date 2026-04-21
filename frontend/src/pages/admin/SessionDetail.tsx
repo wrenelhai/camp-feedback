@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import type { Session, Respondent, Question } from '../../types';
+import type { Session, Respondent, Question, SessionCustomText } from '../../types';
 
 type DetailSession = Session & { respondents: (Respondent & { _count: { recordings: number } })[] };
 
@@ -19,6 +19,13 @@ export default function AdminSessionDetail() {
   const [draftQuestions, setDraftQuestions] = useState<Question[]>([]);
   const [savingQuestions, setSavingQuestions] = useState(false);
   const [saveError, setSaveError] = useState('');
+
+  // Custom text editing state
+  const [editingText, setEditingText] = useState(false);
+  const [draftText, setDraftText] = useState<SessionCustomText>({});
+  const [savingText, setSavingText] = useState(false);
+  const [saveTextError, setSaveTextError] = useState('');
+
   const [copied, setCopied] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -112,6 +119,21 @@ export default function AdminSessionDetail() {
       setSaveError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSavingQuestions(false);
+    }
+  }
+
+  async function saveCustomText() {
+    if (!id) return;
+    setSavingText(true);
+    setSaveTextError('');
+    try {
+      const updated = await api.patchSession(id, { customText: draftText });
+      setSession((prev) => prev ? { ...prev, customText: updated.customText } : prev);
+      setEditingText(false);
+    } catch (err) {
+      setSaveTextError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSavingText(false);
     }
   }
 
@@ -400,6 +422,80 @@ export default function AdminSessionDetail() {
                   disabled={savingQuestions}
                   className="btn-secondary text-sm py-2.5"
                 >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Custom text */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-800">Customize camper-facing text</h2>
+            {!editingText && (
+              <button
+                onClick={() => {
+                  setDraftText({
+                    introBody: session.customText?.introBody ?? '',
+                    privacyNotice: session.customText?.privacyNotice ?? '',
+                    completionMessage: session.customText?.completionMessage ?? '',
+                    closingTagline: session.customText?.closingTagline ?? '',
+                  });
+                  setSaveTextError('');
+                  setEditingText(true);
+                }}
+                className="text-sm text-brand-600 hover:text-brand-800 font-medium"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+
+          {!editingText && (
+            <div className="flex flex-col gap-3 text-sm text-gray-600">
+              {[
+                { label: '"How it works" description', value: session.customText?.introBody, placeholder: "You'll record short audio answers to a series of questions about your camp experience…" },
+                { label: 'Privacy notice', value: session.customText?.privacyNotice, placeholder: 'Your recordings will be transcribed and reviewed only by Miles of Music organizers…' },
+                { label: 'Completion message', value: session.customText?.completionMessage, placeholder: 'Your responses will help shape future camps.' },
+                { label: 'Closing tagline', value: session.customText?.closingTagline, placeholder: '🎵 See you next year at Miles of Music Camp!' },
+              ].map(({ label, value, placeholder }) => (
+                <div key={label}>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
+                  <p className={value ? 'text-gray-700' : 'text-gray-400 italic'}>{value || placeholder}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {editingText && (
+            <div className="flex flex-col gap-4">
+              {saveTextError && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{saveTextError}</p>
+              )}
+              {([
+                { key: 'introBody' as const, label: '"How it works" description', placeholder: "You'll record short audio answers to a series of questions about your camp experience. It takes about 10–15 minutes. You can do it alone or interview each other with a partner.", rows: 3 },
+                { key: 'privacyNotice' as const, label: 'Privacy notice', placeholder: 'Your recordings will be transcribed and reviewed only by Miles of Music organizers. Names are not required. Data is deleted 90 days after camp closes.', rows: 2 },
+                { key: 'completionMessage' as const, label: 'Completion message', placeholder: 'Your responses will help shape future camps.', rows: 2 },
+                { key: 'closingTagline' as const, label: 'Closing tagline', placeholder: '🎵 See you next year at Miles of Music Camp!', rows: 1 },
+              ] as const).map(({ key, label, placeholder, rows }) => (
+                <div key={key}>
+                  <label className="label">{label}</label>
+                  <textarea
+                    className="input resize-none text-sm py-2"
+                    rows={rows}
+                    placeholder={`Default: "${placeholder}"`}
+                    value={draftText[key] ?? ''}
+                    onChange={(e) => setDraftText((prev) => ({ ...prev, [key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+              <p className="text-xs text-gray-400">Leave a field blank to use the default text.</p>
+              <div className="flex gap-3">
+                <button onClick={saveCustomText} disabled={savingText} className="btn-primary text-sm py-2.5">
+                  {savingText ? 'Saving…' : 'Save text'}
+                </button>
+                <button onClick={() => setEditingText(false)} disabled={savingText} className="btn-secondary text-sm py-2.5">
                   Cancel
                 </button>
               </div>
