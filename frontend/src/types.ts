@@ -4,6 +4,7 @@ export interface Question {
   promptText: string;
   promptAudioKey?: string;
   sensitive?: boolean;
+  type?: 'question' | 'info'; // 'question' is default; 'info' shows text only with no recording
 }
 
 export interface Session {

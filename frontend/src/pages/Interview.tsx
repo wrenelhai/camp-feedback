@@ -51,7 +51,7 @@ export default function Interview() {
     }
   }
 
-  async function handleConfirmed() {
+  async function advance() {
     if (!session) return;
 
     const question = session.questions[currentIndex];
@@ -61,7 +61,6 @@ export default function Interview() {
     setCompletedIds(newCompleted);
     setCurrentIndex(newIndex);
 
-    // Persist progress
     await saveSessionState({
       sessionId,
       respondentId,
@@ -70,7 +69,6 @@ export default function Interview() {
       completedQuestionIds: newCompleted,
     });
 
-    // Check if we're done
     if (newIndex >= session.questions.length) {
       await finishInterview(newCompleted);
     }
@@ -112,7 +110,6 @@ export default function Interview() {
     );
   }
 
-  // All done — navigate should have triggered, but guard just in case
   if (currentIndex >= session.questions.length) {
     return (
       <div className="page-container items-center justify-center">
@@ -122,8 +119,10 @@ export default function Interview() {
   }
 
   const question: Question = session.questions[currentIndex];
+  const isInfo = question.type === 'info';
   const total = session.questions.length;
-  const progress = ((currentIndex) / total) * 100;
+  const progress = (currentIndex / total) * 100;
+  const stepLabel = isInfo ? 'Note' : 'Question';
 
   return (
     <div className="page-container">
@@ -131,7 +130,7 @@ export default function Interview() {
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
         <div className="flex-1">
           <div className="text-xs text-gray-500 mb-1 font-medium">
-            Question {currentIndex + 1} of {total}
+            {stepLabel} {currentIndex + 1} of {total}
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div
@@ -143,48 +142,73 @@ export default function Interview() {
       </div>
 
       <div className="page-content">
-        {/* Question card */}
-        <div className="card">
-          <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-2">
-            Question {currentIndex + 1}
-          </p>
-          <p className="text-lg font-medium text-gray-900 leading-snug">
-            {question.promptText}
-          </p>
-          {question.sensitive && (
-            <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5">
-              This question covers sensitive topics. Your answer is confidential and will be
-              reviewed carefully before any synthesis.
-            </p>
-          )}
-        </div>
+        {isInfo ? (
+          // ── Info / text-only step ───────────────────────────────────────────
+          <>
+            <div className="card">
+              <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-2">
+                Note
+              </p>
+              <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                {question.promptText}
+              </p>
+            </div>
 
-        {/* Instructions */}
-        <div className="text-center text-sm text-gray-500">
-          Tap the microphone to start recording your answer.
-          <br />
-          You have up to 3 minutes.
-        </div>
+            <button onClick={advance} className="btn-primary">
+              Continue →
+            </button>
+          </>
+        ) : (
+          // ── Regular question with recorder ──────────────────────────────────
+          <>
+            <div className="card">
+              <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-2">
+                Question {currentIndex + 1}
+              </p>
+              <p className="text-lg font-medium text-gray-900 leading-snug">
+                {question.promptText}
+              </p>
+              {question.sensitive && (
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5">
+                  This question covers sensitive topics. Your answer is confidential and will be
+                  reviewed carefully before any synthesis.
+                </p>
+              )}
+            </div>
 
-        {/* Recorder — key resets all internal state when question changes */}
-        <Recorder
-          key={question.id}
-          respondentId={respondentId}
-          sessionId={sessionId}
-          questionId={question.id}
-          speakerRole="A"
-          isFollowup={false}
-          solo={true}
-          onConfirmed={handleConfirmed}
-        />
+            <div className="text-center text-sm text-gray-500">
+              Tap the microphone to start recording your answer.
+              <br />
+              You have up to 3 minutes.
+            </div>
 
-        {/* Completed dots */}
+            <Recorder
+              key={question.id}
+              respondentId={respondentId}
+              sessionId={sessionId}
+              questionId={question.id}
+              speakerRole="A"
+              isFollowup={false}
+              solo={true}
+              onConfirmed={advance}
+            />
+
+            <button
+              onClick={advance}
+              className="text-sm text-gray-400 hover:text-gray-600 underline underline-offset-2 text-center"
+            >
+              Skip this question
+            </button>
+          </>
+        )}
+
+        {/* Progress dots */}
         {total <= 15 && (
           <div className="flex justify-center gap-1.5 pt-2">
             {session.questions.map((q, i) => (
               <div
                 key={q.id}
-                className={`w-2 h-2 rounded-full ${
+                className={`rounded-full ${q.type === 'info' ? 'w-1.5 h-1.5' : 'w-2 h-2'} ${
                   completedIds.includes(q.id)
                     ? 'bg-brand-600'
                     : i === currentIndex

@@ -260,6 +260,9 @@ export default function AdminSessionDetail() {
                   </span>
                   <span>
                     {q.promptText}
+                    {q.type === 'info' && (
+                      <span className="ml-1 text-xs text-blue-600">(info text)</span>
+                    )}
                     {q.sensitive && (
                       <span className="ml-1 text-xs text-amber-600">(sensitive)</span>
                     )}
@@ -276,63 +279,89 @@ export default function AdminSessionDetail() {
                 <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{saveError}</p>
               )}
 
-              {draftQuestions.map((q, i) => (
-                <div key={q.id} className="border border-gray-200 rounded-xl p-3 flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-gray-400 w-6 text-right flex-shrink-0">
-                      {i + 1}.
-                    </span>
-                    <textarea
-                      className="input flex-1 resize-none text-sm py-2"
-                      rows={2}
-                      value={q.promptText}
-                      onChange={(e) => updateDraftQuestion(i, 'promptText', e.target.value)}
-                      placeholder="Question text…"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pl-8">
-                    <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={q.sensitive ?? false}
-                        onChange={(e) => updateDraftQuestion(i, 'sensitive', e.target.checked)}
-                        className="rounded"
+              {draftQuestions.map((q, i) => {
+                const isInfo = q.type === 'info';
+                return (
+                  <div
+                    key={q.id}
+                    className={`border rounded-xl p-3 flex flex-col gap-2 ${
+                      isInfo ? 'border-blue-200 bg-blue-50/40' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-400 w-6 text-right flex-shrink-0">
+                        {i + 1}.
+                      </span>
+                      <textarea
+                        className="input flex-1 resize-none text-sm py-2"
+                        rows={isInfo ? 4 : 2}
+                        value={q.promptText}
+                        onChange={(e) => updateDraftQuestion(i, 'promptText', e.target.value)}
+                        placeholder={isInfo ? 'Info text shown to camper (e.g. list of community agreements)…' : 'Question text…'}
                       />
-                      Mark as sensitive (excluded from synthesis)
-                    </label>
+                    </div>
 
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => moveQuestion(i, -1)}
-                        disabled={i === 0}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                        aria-label="Move up"
-                        title="Move up"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        onClick={() => moveQuestion(i, 1)}
-                        disabled={i === draftQuestions.length - 1}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                        aria-label="Move down"
-                        title="Move down"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        onClick={() => removeQuestion(i)}
-                        className="p-1 text-red-400 hover:text-red-600 ml-1"
-                        aria-label="Remove question"
-                        title="Remove"
-                      >
-                        ✕
-                      </button>
+                    <div className="flex items-center justify-between pl-8">
+                      <div className="flex items-center gap-4">
+                        {/* Type toggle */}
+                        <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isInfo}
+                            onChange={(e) =>
+                              updateDraftQuestion(i, 'type', e.target.checked ? 'info' : 'question')
+                            }
+                            className="rounded"
+                          />
+                          Info text (no recording)
+                        </label>
+
+                        {/* Sensitive — only relevant for questions */}
+                        {!isInfo && (
+                          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={q.sensitive ?? false}
+                              onChange={(e) => updateDraftQuestion(i, 'sensitive', e.target.checked)}
+                              className="rounded"
+                            />
+                            Sensitive
+                          </label>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => moveQuestion(i, -1)}
+                          disabled={i === 0}
+                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                          aria-label="Move up"
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => moveQuestion(i, 1)}
+                          disabled={i === draftQuestions.length - 1}
+                          className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                          aria-label="Move down"
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          onClick={() => removeQuestion(i)}
+                          className="p-1 text-red-400 hover:text-red-600 ml-1"
+                          aria-label="Remove"
+                          title="Remove"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <button
                 onClick={addQuestion}

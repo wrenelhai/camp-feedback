@@ -12,6 +12,7 @@ const questionSchema = z.object({
   promptText: z.string().min(1),
   promptAudioKey: z.string().optional(),
   sensitive: z.boolean().default(false),
+  type: z.enum(['question', 'info']).default('question'),
 });
 
 const createSessionSchema = z.object({
