@@ -5,6 +5,7 @@ import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import fs from 'fs';
 import { config } from './config';
+import { startWorker } from './worker';
 import { adminSetupRoutes } from './routes/admin/setup';
 import { adminAuthRoutes } from './routes/admin/auth';
 import { adminSessionsRoutes } from './routes/admin/sessions';
@@ -90,6 +91,7 @@ async function main() {
   try {
     await app.listen({ port: config.PORT, host: '0.0.0.0' });
     console.log(`\n🎵 Camp Feedback API running on http://localhost:${config.PORT}\n`);
+    startWorker();
   } catch (err) {
     app.log.error(err);
     process.exit(1);

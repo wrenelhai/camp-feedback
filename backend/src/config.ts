@@ -22,6 +22,10 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().optional(),
   SUPABASE_SERVICE_KEY: z.string().optional(),
   SUPABASE_BUCKET: z.string().default('recordings'),
+
+  // Transcription + redaction (optional — worker disabled when not set)
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

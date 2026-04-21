@@ -97,3 +97,17 @@ export async function deleteAudio(audioKey: string): Promise<void> {
 export function createLocalAudioStream(audioKey: string) {
   return fsSync.createReadStream(resolveAudioPath(audioKey));
 }
+
+/**
+ * Fetch an audio file as a Buffer — used by the transcription worker.
+ * Works with both Supabase Storage and local disk.
+ */
+export async function getAudioBuffer(audioKey: string): Promise<Buffer> {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data, error } = await supabase.storage.from(BUCKET).download(audioKey);
+    if (error) throw new Error(`Supabase Storage download failed: ${error.message}`);
+    return Buffer.from(await data.arrayBuffer());
+  }
+  return fs.readFile(resolveAudioPath(audioKey));
+}
