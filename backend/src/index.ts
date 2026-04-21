@@ -27,7 +27,17 @@ async function buildApp() {
   fs.mkdirSync(config.UPLOAD_DIR, { recursive: true });
 
   await app.register(cors, {
-    origin: true,
+    origin: (origin, cb) => {
+      if (
+        !origin ||
+        origin === config.FRONTEND_URL ||
+        /^https?:\/\/localhost(:\d+)?$/.test(origin)
+      ) {
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'), false);
+      }
+    },
     credentials: true,
   });
 
@@ -45,6 +55,8 @@ async function buildApp() {
     timeWindow: '1 minute',
     keyGenerator: (req: FastifyRequest) => req.ip,
   });
+
+  app.get('/health', async () => ({ ok: true }));
 
   // ── Public camper routes (no auth) ──────────────────────────────────────────
   await app.register(publicSessionsRoutes, { prefix: '/sessions' });
