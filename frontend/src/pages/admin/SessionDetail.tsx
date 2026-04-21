@@ -282,7 +282,7 @@ export default function AdminSessionDetail() {
         {/* Custom text */}
         {(() => {
           const DEFAULTS = {
-            introBody: "You'll record short audio answers to a series of questions about your camp experience. It takes about 10–15 minutes. You can do it alone or interview each other with a partner.",
+            introBody: "You'll record short audio answers to a series of questions about your camp experience. You can do it alone or interview each other with a partner.",
             privacyNotice: 'Your recordings will be transcribed and reviewed only by Miles of Music organizers. Names are not required. Data is deleted 90 days after camp closes.',
             completionMessage: 'Thanks for sharing your feedback. Your responses will help shape future camps.',
             closingTagline: '🎵 See you next year at Miles of Music Camp!',

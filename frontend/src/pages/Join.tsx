@@ -213,7 +213,7 @@ export default function Join() {
               <h2 className="font-semibold text-gray-800 mb-2">How it works</h2>
               <p className="text-gray-600 text-sm leading-relaxed">
                 {session.customText?.introBody ??
-                  "You'll record short audio answers to a series of questions about your camp experience. It takes about 10–15 minutes. You can do it alone or interview each other with a partner."}
+                  "You'll record short audio answers to a series of questions about your camp experience. You can do it alone or interview each other with a partner."}
               </p>
               <p className="text-xs text-gray-400 mt-3 leading-relaxed">
                 <strong>Privacy notice:</strong>{' '}
@@ -222,7 +222,7 @@ export default function Join() {
               </p>
             </div>
             <div className="text-center text-sm text-gray-500">
-              {session.questions.length} questions · about 10–15 min
+              {session.questions.length} questions
             </div>
             <button onClick={() => setStep('name')} className="btn-primary">
               Get started
