@@ -52,6 +52,34 @@ export interface Recording {
   respondent?: Respondent;
 }
 
+export interface SynthesisTheme {
+  name: string;
+  description: string;
+  estimatedCount: number;
+  quotes: string[];
+}
+
+export interface QuestionSynthesisData {
+  themes: SynthesisTheme[];
+  outliers: string[];
+  distressFlags: Array<{ quote: string; concern: string }>;
+}
+
+export interface CrossQuestionSynthesisData {
+  connections: Array<{ title: string; description: string }>;
+  keyTakeaways: string[];
+}
+
+export interface SynthesisRecord {
+  id: string;
+  sessionId: string;
+  questionId: string | null;
+  type: 'per_question' | 'cross_question';
+  generatedAt: string;
+  themes: QuestionSynthesisData | CrossQuestionSynthesisData;
+  promptVersion: string;
+}
+
 /** Stored in IndexedDB while awaiting upload */
 export interface PendingRecording {
   localId: string;

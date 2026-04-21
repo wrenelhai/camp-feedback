@@ -7,6 +7,7 @@ import AdminLogin from './pages/admin/Login';
 import AdminSessions from './pages/admin/Sessions';
 import AdminSessionDetail from './pages/admin/SessionDetail';
 import AdminResponses from './pages/admin/Responses';
+import AdminSynthesis from './pages/admin/Synthesis';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/admin/sessions" element={<AdminSessions />} />
         <Route path="/admin/sessions/:id" element={<AdminSessionDetail />} />
         <Route path="/admin/sessions/:id/responses" element={<AdminResponses />} />
+        <Route path="/admin/sessions/:id/synthesis" element={<AdminSynthesis />} />
 
         {/* Redirects */}
         <Route path="/admin" element={<Navigate to="/admin/sessions" replace />} />

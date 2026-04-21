@@ -1,4 +1,4 @@
-import type { Session, Respondent, Recording, Question, SessionCustomText } from '../types';
+import type { Session, Respondent, Recording, Question, SessionCustomText, SynthesisRecord } from '../types';
 
 // In dev, Vite proxies /api → localhost:3001. In prod, set VITE_API_URL to the backend origin.
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
@@ -122,6 +122,30 @@ export const api = {
     if (!res.ok) throw new Error('QR generation failed');
     const blob = await res.blob();
     return URL.createObjectURL(blob);
+  },
+
+  getSynthesis: (sessionId: string) =>
+    json<SynthesisRecord[]>(`/admin/sessions/${sessionId}/synthesis`),
+
+  synthesize: (sessionId: string, force = false) =>
+    json<SynthesisRecord[] | { confirmRequired: true; existingAt: string }>(
+      `/admin/sessions/${sessionId}/synthesize?force=${force}`,
+      { method: 'POST' },
+    ),
+
+  exportSession: async (sessionId: string): Promise<void> => {
+    const res = await fetch(`${BASE}/admin/sessions/${sessionId}/export`, {
+      headers: adminHeaders(),
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const filename = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] ?? 'export.zip';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   },
 
   deleteRespondent: (id: string) =>

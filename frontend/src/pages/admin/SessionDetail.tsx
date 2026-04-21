@@ -239,6 +239,12 @@ export default function AdminSessionDetail() {
           >
             View transcripts
           </Link>
+          <Link
+            to={`/admin/sessions/${id}/synthesis`}
+            className="btn-secondary w-auto px-5 py-2.5 text-sm"
+          >
+            Synthesis
+          </Link>
         </div>
 
         {/* QR Code */}

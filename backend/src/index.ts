@@ -9,6 +9,7 @@ import { startWorker } from './worker';
 import { adminSetupRoutes } from './routes/admin/setup';
 import { adminAuthRoutes } from './routes/admin/auth';
 import { adminSessionsRoutes } from './routes/admin/sessions';
+import { adminSynthesisRoutes } from './routes/admin/synthesis';
 import { publicSessionsRoutes } from './routes/public/sessions';
 import { publicRespondentsRoutes } from './routes/public/respondents';
 import { publicRecordingsRoutes } from './routes/public/recordings';
@@ -79,6 +80,7 @@ async function buildApp() {
         }
       });
       await authApp.register(adminSessionsRoutes);
+      await authApp.register(adminSynthesisRoutes);
     },
     { prefix: '/admin' },
   );
