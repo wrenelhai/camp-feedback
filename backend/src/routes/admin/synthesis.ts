@@ -77,7 +77,7 @@ Identify 4-7 themes. Include 2-3 direct verbatim quotes per theme. Only populate
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -206,15 +206,15 @@ export const adminSynthesisRoutes: FastifyPluginAsync = async (fastify) => {
 
     const client = getClient();
 
-    // Run all per-question syntheses in parallel
-    const questionResults = await Promise.all(
-      questionItems.map(async (q) => {
-        const transcripts = byQuestion.get(q.id) ?? [];
-        if (transcripts.length === 0) return null;
-        const data = await synthesizeQuestion(client, q.promptText, transcripts);
-        return { q, data, transcriptCount: transcripts.length };
-      }),
-    );
+    // Run per-question syntheses sequentially to stay within output token rate limits
+    const questionResults: Array<{ q: ParsedQuestion; data: QuestionSynthesisData; transcriptCount: number } | null> = [];
+    for (const q of questionItems) {
+      const transcripts = byQuestion.get(q.id) ?? [];
+      if (transcripts.length === 0) { questionResults.push(null); continue; }
+      const data = await synthesizeQuestion(client, q.promptText, transcripts);
+      questionResults.push({ q, data, transcriptCount: transcripts.length });
+      await new Promise((res) => setTimeout(res, 1500));
+    }
 
     const stored: Array<{ questionId: string | null; data: QuestionSynthesisData | CrossQuestionSynthesisData }> = [];
 
