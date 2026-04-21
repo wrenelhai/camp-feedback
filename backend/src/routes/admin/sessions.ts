@@ -34,9 +34,16 @@ export const adminSessionsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/sessions', async (_request, reply) => {
     const sessions = await db.session.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { respondents: true } } },
+      include: {
+        _count: { select: { respondents: true } },
+        respondents: { select: { solo: true } },
+      },
     });
-    return sessions.map((s) => ({ ...s, questions: parseQuestions(s.questions) }));
+    return sessions.map((s) => {
+      const interviewCount = s.respondents.reduce((acc: number, r: { solo: boolean }) => acc + (r.solo ? 1 : 2), 0);
+      const { respondents: _r, ...rest } = s;
+      return { ...rest, questions: parseQuestions(s.questions), interviewCount };
+    });
   });
 
   fastify.post('/sessions', async (request: FastifyRequest, reply) => {

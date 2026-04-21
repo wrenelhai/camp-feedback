@@ -151,10 +151,10 @@ export default function AdminSessionDetail() {
   const joinUrl = `${window.location.origin}/join?session=${id}`;
 
   const stats = session ? {
-    total: session.respondents.length,
-    completed: session.respondents.filter((r) => r.status === 'completed').length,
-    partial: session.respondents.filter((r) => r.status === 'partially_complete').length,
-    inProgress: session.respondents.filter((r) => r.status === 'in_progress').length,
+    total: session.respondents.reduce((acc, r) => acc + (r.solo ? 1 : 2), 0),
+    completed: session.respondents.filter((r) => r.status === 'completed').reduce((acc, r) => acc + (r.solo ? 1 : 2), 0),
+    partial: session.respondents.filter((r) => r.status === 'partially_complete').reduce((acc, r) => acc + (r.solo ? 1 : 2), 0),
+    inProgress: session.respondents.filter((r) => r.status === 'in_progress').reduce((acc, r) => acc + (r.solo ? 1 : 2), 0),
   } : null;
 
   if (loading) {
@@ -215,7 +215,7 @@ export default function AdminSessionDetail() {
             to={`/admin/sessions/${id}/responses`}
             className="btn-primary w-auto px-5 py-2.5 text-sm"
           >
-            View responses
+            View transcripts
           </Link>
         </div>
 

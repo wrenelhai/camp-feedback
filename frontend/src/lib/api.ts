@@ -88,7 +88,7 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
-  listSessions: () => json<(Session & { _count: { respondents: number } })[]>('/admin/sessions'),
+  listSessions: () => json<(Session & { _count: { respondents: number }; interviewCount: number })[]>('/admin/sessions'),
 
   createSession: (data: { name: string; questions: Question[] }) =>
     json<Session>('/admin/sessions', { method: 'POST', body: JSON.stringify(data) }),

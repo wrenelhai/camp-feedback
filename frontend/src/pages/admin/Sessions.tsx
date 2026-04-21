@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { Session, Question } from '../../types';
 
-type SessionWithCount = Session & { _count: { respondents: number } };
+type SessionWithCount = Session & { _count: { respondents: number }; interviewCount: number };
 
 const DEFAULT_QUESTIONS: Question[] = [
   { id: 'q1', order: 0, promptText: 'What was your role at camp this year? (e.g. returning camper, new camper, instructor, croo member)' },
@@ -148,7 +148,7 @@ export default function AdminSessions() {
               <p className="text-sm text-gray-500 mt-0.5">
                 {new Date(s.createdAt).toLocaleDateString()} ·{' '}
                 {s.questions.length} questions ·{' '}
-                {s._count.respondents} interview{s._count.respondents !== 1 ? 's' : ''}
+                {s.interviewCount} interview{s.interviewCount !== 1 ? 's' : ''}
               </p>
             </div>
             <span
