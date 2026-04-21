@@ -124,6 +124,14 @@ export const api = {
     return URL.createObjectURL(blob);
   },
 
+  deleteRespondent: (id: string) =>
+    fetch(`${BASE}/admin/respondents/${id}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    }).then((res) => {
+      if (!res.ok && res.status !== 204) throw new Error('Delete failed');
+    }),
+
   flagRecording: (id: string, flagged: boolean, flagReason?: string) =>
     json<Recording>(`/admin/recordings/${id}/flag`, {
       method: 'PATCH',

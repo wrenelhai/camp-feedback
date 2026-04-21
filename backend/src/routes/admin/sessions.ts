@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import fsSync from 'fs';
 import { db } from '../../db';
 import { config } from '../../config';
-import { getAudioSignedUrl, resolveAudioPath, createLocalAudioStream } from '../../storage';
+import { getAudioSignedUrl, resolveAudioPath, createLocalAudioStream, deleteAudio } from '../../storage';
 
 const questionSchema = z.object({
   id: z.string().min(1),
@@ -182,5 +182,29 @@ export const adminSessionsRoutes: FastifyPluginAsync = async (fastify) => {
       data: { transcript },
     });
     return recording;
+  });
+
+  // Delete a respondent and all their recordings (audio files + DB rows)
+  fastify.delete('/respondents/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const respondent = await db.respondent.findUnique({
+      where: { id },
+      include: { recordings: true },
+    });
+    if (!respondent) return reply.code(404).send({ error: 'Respondent not found' });
+
+    // Delete audio files from storage (best-effort — don't fail if a file is missing)
+    await Promise.allSettled(
+      respondent.recordings
+        .filter((r) => r.audioKey)
+        .map((r) => deleteAudio(r.audioKey!)),
+    );
+
+    // Delete DB rows (recordings first, then respondent)
+    await db.recording.deleteMany({ where: { respondentId: id } });
+    await db.respondent.delete({ where: { id } });
+
+    return reply.code(204).send();
   });
 };

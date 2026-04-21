@@ -20,6 +20,8 @@ export default function AdminSessionDetail() {
   const [savingQuestions, setSavingQuestions] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -120,6 +122,21 @@ export default function AdminSessionDetail() {
     a.href = url;
     a.download = `qr-${session?.name.replace(/\s+/g, '-') ?? id}.png`;
     a.click();
+  }
+
+  async function handleDeleteRespondent(respondentId: string) {
+    setDeleting(respondentId);
+    try {
+      await api.deleteRespondent(respondentId);
+      setSession((prev) =>
+        prev ? { ...prev, respondents: prev.respondents.filter((r) => r.id !== respondentId) } : prev,
+      );
+    } catch {
+      // ignore — leave UI unchanged
+    } finally {
+      setDeleting(null);
+      setConfirmDeleteId(null);
+    }
   }
 
   function copyJoinUrl() {
@@ -396,12 +413,12 @@ export default function AdminSessionDetail() {
             <h2 className="font-semibold text-gray-800 mb-3">Recent interviews</h2>
             <div className="flex flex-col gap-2">
               {session.respondents.slice(0, 10).map((r) => (
-                <div key={r.id} className="flex items-center justify-between text-sm py-1">
-                  <span className="text-gray-700">
+                <div key={r.id} className="flex items-center justify-between text-sm py-1.5 gap-3">
+                  <span className="text-gray-700 min-w-0 truncate">
                     {r.camperAName ?? 'Anonymous'}
                     {r.camperBName ? ` & ${r.camperBName}` : ''}
                   </span>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="text-gray-400">{r._count.recordings} recording{r._count.recordings !== 1 ? 's' : ''}</span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
@@ -412,6 +429,32 @@ export default function AdminSessionDetail() {
                     >
                       {r.status.replace(/_/g, ' ')}
                     </span>
+
+                    {confirmDeleteId === r.id ? (
+                      <span className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleDeleteRespondent(r.id)}
+                          disabled={deleting === r.id}
+                          className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded disabled:opacity-50"
+                        >
+                          {deleting === r.id ? '…' : 'Confirm'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(r.id)}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                        title="Delete this response"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
