@@ -1,0 +1,72 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+}
+
+model Session {
+  id          String       @id @default(cuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  createdById String
+  questions   String       // JSON: Question[]
+  status      String       @default("active") // draft | active | closed
+  createdBy   AdminUser    @relation(fields: [createdById], references: [id])
+  respondents Respondent[]
+  syntheses   Synthesis[]
+}
+
+model Respondent {
+  id          String      @id @default(cuid())
+  sessionId   String
+  camperAName String?
+  camperBName String?
+  solo        Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  completedAt DateTime?
+  status      String      @default("in_progress") // in_progress | completed | partially_complete | abandoned
+  session     Session     @relation(fields: [sessionId], references: [id])
+  recordings  Recording[]
+}
+
+model Recording {
+  id                     String     @id @default(cuid())
+  respondentId           String
+  questionId             String
+  speakerRole            String     @default("A") // A | B
+  isFollowup             Boolean    @default(false)
+  solo                   Boolean    @default(false)
+  audioKey               String?    // relative path under UPLOAD_DIR
+  durationSec            Int?
+  uploadedAt             DateTime?
+  transcribedAt          DateTime?
+  transcript             String?
+  transcriptRedacted     String?
+  flagged                Boolean    @default(false)
+  flagReason             String?
+  testimonialAttribution String?
+  respondent             Respondent @relation(fields: [respondentId], references: [id])
+}
+
+model Synthesis {
+  id            String   @id @default(cuid())
+  sessionId     String
+  questionId    String?  // null for cross-question syntheses
+  type          String   // per_question | cross_question
+  generatedAt   DateTime @default(now())
+  themes        String   // JSON matching synthesis themes schema
+  rawOutput     String
+  promptVersion String
+  session       Session  @relation(fields: [sessionId], references: [id])
+}

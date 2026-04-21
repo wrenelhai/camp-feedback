@@ -1,0 +1,201 @@
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
+import { saveSessionState, getSessionState, clearSessionState } from '../lib/idb';
+import Recorder from '../components/Recorder';
+import type { Session, Question } from '../types';
+
+interface LocationState {
+  sessionId: string;
+  respondentId: string;
+}
+
+export default function Interview() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const state = location.state as LocationState | null;
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const sessionId = state?.sessionId ?? '';
+  const respondentId = state?.respondentId ?? '';
+
+  useEffect(() => {
+    if (!sessionId || !respondentId) {
+      navigate('/join', { replace: true });
+      return;
+    }
+    loadSession();
+  }, [sessionId, respondentId]);
+
+  async function loadSession() {
+    try {
+      const [s, idbState] = await Promise.all([
+        api.getSession(sessionId),
+        getSessionState(sessionId, respondentId),
+      ]);
+      setSession(s);
+
+      if (idbState) {
+        setCurrentIndex(idbState.currentQuestionIndex);
+        setCompletedIds(idbState.completedQuestionIds);
+      }
+    } catch {
+      setError('Could not load interview questions. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleConfirmed() {
+    if (!session) return;
+
+    const question = session.questions[currentIndex];
+    const newCompleted = [...completedIds, question.id];
+    const newIndex = currentIndex + 1;
+
+    setCompletedIds(newCompleted);
+    setCurrentIndex(newIndex);
+
+    // Persist progress
+    await saveSessionState({
+      sessionId,
+      respondentId,
+      camperName: '',
+      currentQuestionIndex: newIndex,
+      completedQuestionIds: newCompleted,
+    });
+
+    // Check if we're done
+    if (newIndex >= session.questions.length) {
+      await finishInterview(newCompleted);
+    }
+  }
+
+  async function finishInterview(finalCompleted: string[]) {
+    if (!session) return;
+    try {
+      await api.updateRespondent(respondentId, {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+      });
+    } catch {
+      // Non-fatal: the recordings are already uploaded
+    }
+    await clearSessionState(sessionId, respondentId);
+    localStorage.removeItem(`session-context-${sessionId}`);
+    navigate('/done', { state: { sessionName: session.name, count: finalCompleted.length } });
+  }
+
+  if (loading) {
+    return (
+      <div className="page-container items-center justify-center">
+        <p className="text-gray-500 animate-pulse">Loading questions…</p>
+      </div>
+    );
+  }
+
+  if (error || !session) {
+    return (
+      <div className="page-container">
+        <div className="page-content items-center justify-center text-center">
+          <p className="text-red-600">{error || 'Session not found'}</p>
+          <button onClick={() => navigate(-1)} className="btn-secondary mt-4 max-w-xs">
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // All done — navigate should have triggered, but guard just in case
+  if (currentIndex >= session.questions.length) {
+    return (
+      <div className="page-container items-center justify-center">
+        <p className="text-gray-500">Finishing up…</p>
+      </div>
+    );
+  }
+
+  const question: Question = session.questions[currentIndex];
+  const total = session.questions.length;
+  const progress = ((currentIndex) / total) * 100;
+
+  return (
+    <div className="page-container">
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+        <div className="flex-1">
+          <div className="text-xs text-gray-500 mb-1 font-medium">
+            Question {currentIndex + 1} of {total}
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              className="bg-brand-600 h-1.5 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="page-content">
+        {/* Question card */}
+        <div className="card">
+          <p className="text-xs font-semibold text-brand-600 uppercase tracking-wider mb-2">
+            Question {currentIndex + 1}
+          </p>
+          <p className="text-lg font-medium text-gray-900 leading-snug">
+            {question.promptText}
+          </p>
+          {question.sensitive && (
+            <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5">
+              This question covers sensitive topics. Your answer is confidential and will be
+              reviewed carefully before any synthesis.
+            </p>
+          )}
+        </div>
+
+        {/* Instructions */}
+        <div className="text-center text-sm text-gray-500">
+          Tap the microphone to start recording your answer.
+          <br />
+          You have up to 3 minutes.
+        </div>
+
+        {/* Recorder — key resets all internal state when question changes */}
+        <Recorder
+          key={question.id}
+          respondentId={respondentId}
+          sessionId={sessionId}
+          questionId={question.id}
+          speakerRole="A"
+          isFollowup={false}
+          solo={true}
+          onConfirmed={handleConfirmed}
+        />
+
+        {/* Completed dots */}
+        {total <= 15 && (
+          <div className="flex justify-center gap-1.5 pt-2">
+            {session.questions.map((q, i) => (
+              <div
+                key={q.id}
+                className={`w-2 h-2 rounded-full ${
+                  completedIds.includes(q.id)
+                    ? 'bg-brand-600'
+                    : i === currentIndex
+                    ? 'bg-brand-300'
+                    : 'bg-gray-200'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
