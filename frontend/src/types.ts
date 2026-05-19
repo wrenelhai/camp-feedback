@@ -8,6 +8,8 @@ export interface Question {
 }
 
 export interface SessionCustomText {
+  orgName?: string;
+  pageTitle?: string;
   introBody?: string;
   privacyNotice?: string;
   completionMessage?: string;

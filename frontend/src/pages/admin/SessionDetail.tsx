@@ -282,12 +282,16 @@ export default function AdminSessionDetail() {
         {/* Custom text */}
         {(() => {
           const DEFAULTS = {
+            orgName: 'Miles of Music Camp',
+            pageTitle: 'Camp Feedback',
             introBody: "You'll record short audio answers to a series of questions about your camp experience. You can do it alone or interview each other with a partner.",
             privacyNotice: 'Your recordings will be transcribed and reviewed only by Miles of Music organizers. Names are not required. Data is deleted 90 days after camp closes.',
             completionMessage: 'Thanks for sharing your feedback. Your responses will help shape future camps.',
             closingTagline: '🎵 See you next year at Miles of Music Camp!',
           } as const;
           const fields = [
+            { key: 'orgName' as const, label: 'Organization name (shown above page title)', rows: 1 },
+            { key: 'pageTitle' as const, label: 'Page title', rows: 1 },
             { key: 'introBody' as const, label: '"How it works" description', rows: 3 },
             { key: 'privacyNotice' as const, label: 'Privacy notice', rows: 2 },
             { key: 'completionMessage' as const, label: 'Completion message', rows: 3 },
@@ -301,6 +305,8 @@ export default function AdminSessionDetail() {
                   <button
                     onClick={() => {
                       setDraftText({
+                        orgName: session.customText?.orgName ?? DEFAULTS.orgName,
+                        pageTitle: session.customText?.pageTitle ?? DEFAULTS.pageTitle,
                         introBody: session.customText?.introBody ?? DEFAULTS.introBody,
                         privacyNotice: session.customText?.privacyNotice ?? DEFAULTS.privacyNotice,
                         completionMessage: session.customText?.completionMessage ?? DEFAULTS.completionMessage,

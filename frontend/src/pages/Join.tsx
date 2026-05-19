@@ -183,9 +183,11 @@ export default function Join() {
         {/* Header */}
         <div className="text-center pt-4">
           <p className="text-brand-600 font-semibold text-sm uppercase tracking-widest mb-1">
-            Miles of Music Camp
+            {session?.customText?.orgName ?? 'Miles of Music Camp'}
           </p>
-          <h1 className="text-2xl font-bold text-gray-900">Camp Feedback</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {session?.customText?.pageTitle ?? 'Camp Feedback'}
+          </h1>
         </div>
 
         {/* ── RESUME PROMPT ── */}
